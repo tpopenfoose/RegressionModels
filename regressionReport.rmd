@@ -3,17 +3,17 @@ title: "Effects of Transmission Type on Miles per Gallon"
 author: "Toby Popenfoose"
 date: "June 20, 2015"
 output:
-  html_document: default
   pdf_document:
     fig_height: 7.5
     fig_width: 7.5
+  html_document: default
 graphics: yes
 geometry: margin=.5in
 fontsize: 11pt
 ---
 ### Executive Summary:  
 This analysis is of the mtcars dataset described in 
-<https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html>.  There are 19 cars with manual transmissions and 13 with automatic transmissions in the dataset.  This report is of the inference from modeling the dataset to determine and quantify the difference in miles per gallon for an automatic versus a manual transmission.  The multivariable linear model shows there is a statistically significant difference at a 95% level between manual and automatic transmissions.  Accounting for weight and quarter mile time, the predicted difference in miles per gallon is 2.94 miles per gallon better with an automatic transmission than with a manual transmission.  The lower 95% confidence interval is 0.05 miles per gallon and the upper 95% confidence interval is 5.83 miles per gallon due to the difference in transmissions.  The multivariable linear model using transmission, weight and quarter second time explains 85% of the model variation compared to only 36% explained in the simple linear model of just transmission to predict miles per gallon.  When testing the two models, the multivariable model is statistically significantly better than the simple linear model ata the 95% confidence level.
+<https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html>.  There are 19 cars with manual transmissions and 13 with automatic transmissions in the dataset.  This report is of the inference from modeling the dataset to determine and quantify the difference in miles per gallon for an automatic versus a manual transmission.  The multivariable linear model shows there is a statistically significant difference at a 95% level between manual and automatic transmissions.  Accounting for weight and quarter mile time, the predicted difference in miles per gallon is 2.94 miles per gallon better with an automatic transmission than with a manual transmission.  The lower 95% confidence interval is 0.05 miles per gallon and the upper 95% confidence interval is 5.83 miles per gallon due to the difference in transmissions.  The multivariable linear model using transmission, weight and quarter second time explains 85% of the model variation compared to only 36% explained in the simple linear model of just transmission to predict miles per gallon.  When testing the two models, the multivariable model is statistically significantly better than the simple linear model ata the 95% confidence level. (See <https://github.com/tpopenfoose/RegressionModels> for knitr source and rough draft)
 
 ```{r, echo=FALSE}
 suppressPackageStartupMessages(library(dplyr))
