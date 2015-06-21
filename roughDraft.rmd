@@ -1,0 +1,137 @@
+---
+title: "Effects of Transmission Type on Miles per Gallon"
+author: "Toby Popenfoose"
+date: "June 20, 2015"
+output:
+  html_document: default
+  pdf_document:
+    fig_height: 7.5
+    fig_width: 7.5
+graphics: yes
+geometry: margin=.5in
+fontsize: 11pt
+---
+### Executive Summary:  
+This analysis is of the mtcars dataset described in 
+<https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html>.  There are 19 cars with manual transmissions and 13 with automatic transmissions in the dataset.  This report is of the inference from modeling the dataset to determine and quantify the difference in miles per gallon for an automatic versus a manual transmission.  The multivariable linear model shows there is a statistically significant difference at a 95% level between manual and automatic transmissions.  Accounting for weight and quarter mile time, the predicted difference in miles per gallon is 2.94 miles per gallon better with an automatic transmission than with a manual transmission.  The lower 95% confidence interval is 0.05 miles per gallon and the upper 95% confidence interval is 5.83 miles per gallon due to the difference in transmissions.  The multivariable linear model using transmission, weight and quarter second time explains 85% of the model variation compared to only 36% explained in the simple linear model of just transmission to predict miles per gallon.  When testing the two models, the multivariable model is statistically significantly better than the simple linear model.
+
+```{r, echo=FALSE}
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(GGally))
+library(broom)
+library(leaps)
+library(car)
+suppressPackageStartupMessages(library(MPV))
+```
+### Exploratory Data Analysis:
+There were no missing values found.
+
+For EDA I used the str, summary, cor and table functions.  See the roughDraft report on github for the particulars.
+```{r}
+str(mtcars)
+summary(mtcars)
+cor(mtcars)
+table(mtcars$am)
+```
+It appears that two variables, am and vs, do not make sense as numeric.  I will transform am and vs to factors so the modeling functions will behave better.
+
+```{r}
+mtcars$am <- factor(mtcars$am)
+mtcars$vs <- factor(mtcars$vs)
+```
+
+### Simple Linear Model:
+A naive starting point would be to just do a simple linear regression of just the independent variable am to predict mpg.  After doing a simple linear model with just 'am' for the predictor, only 36% of the variation is explained by the model suggesting there are other confounder variables to be accounted for.
+
+```{r}
+fit1 <- lm(mpg ~ am, mtcars)
+confint(fit1, level=.95)  # 95% confidence interval
+summary(fit1)
+tidy(fit1, conf.int=TRUE)
+glance(fit1)
+augment(fit1)
+```
+
+### Multivariate Linear Model:
+With 10 possible predictor variables there are 2^10= 1,024 different models.  To save time, I used stepFit and regsubsets from the leaps package for variable selection using AIC in stepFit and BIC in leaps.  See Figures 4 and 5 for graphs of the results.  Based on the multiple models both methods tested, I have chose to use additional variables of weight and quarter mile time.  Using transmission type, weight and quarter mile time explains 85% of the variance.
+
+```{r}
+leapsFit <- regsubsets(mpg ~ ., data=mtcars, nvmax=8)
+leapsSummary <- summary(leapsFit); leapsSummary
+
+names(leapsSummary)
+leapsSummary$rsq
+
+coef(leapsFit, 3)
+
+stepFit <- step(lm(mpg ~ ., data=mtcars))
+summary(stepFit)
+
+finalFit <- lm(mpg ~ am + wt + qsec, data=mtcars)
+confint(finalFit, level=.95)  # 95% confidence interval
+summary(finalFit)
+tidy(finalFit, conf.int=TRUE)
+glance(finalFit)
+augment(finalFit)
+```
+
+### Diagnostics and Inference:
+The residual plots in Figure 6 show there is little heteroscadicity, they are mostly normal, there does not appear to be any significant outliers and there does not appear to be any data points with high influence or high leverage.
+
+```{r}
+anova(fit1, finalFit)
+```
+
+The results of the anova are statistically significant at the 95% level and suggests that the multivariable model is better by looking at the residual sum of squares.
+
+```{r}
+vif(finalFit)
+```
+The variance inflation factor suggests there is only moderate correlation between the variables selected which suggests there is not a large amount of collinearity between the variables.
+
+```{r]}
+PRESS(fit1)
+PRESS(finalFit)
+```
+The PRESS statistic is less for the multivariable linear model which suggest is has higher predictive ability due to less predictive error than the simple linear model.
+
+### Appendix:
+```{r}
+pairs(mtcars, main = "Figure 1.  Pairs Plot of mtcars Variables.", line.main=1.5, oma=c(2,2,3,2))
+ggpairs(mtcars[ ,c(1,6,7,9)], lower=list(continuous="smooth"), colour="am", alpha=0.4,
+        params = c(binwidth=.4), title="Figure 2.  Ggpairs Plot of Selected mtcars Variables.")
+```
+
+Figure 3.  Residuals and Diagnostics Plots for Simple Linear Model.
+```{r}
+par(mfrow=c(3,2)); plot(fit1, which=1:6)
+```
+
+Figure 4.  Multivariate Variable Selection.
+```{r}
+par(mfrow=c(2,2))
+plot(leapsSummary$rss, xlab="Number of Variables", ylab="RSS", type="l")
+plot(leapsSummary$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+points(which.max(leapsSummary$adjr2),
+       leapsSummary$adjr2[which.max(leapsSummary$adjr2)], col="red", cex=2, pch=20)
+plot(leapsSummary$cp,xlab="Number of Variables", ylab="Cp", type="l")
+points(which.min(leapsSummary$cp), leapsSummary$cp[which.min(leapsSummary$cp)],
+       col="red", cex=2, pch=20)
+plot(leapsSummary$bic, xlab="Number of Variables", ylab="BIC", type="l")
+points(which.min(leapsSummary$bic), leapsSummary$bic[which.min(leapsSummary$bic)],
+       col="red", cex=2, pch=20)
+```
+
+Figure 5.  Multivariate Variables.
+```{r}
+par(mfrow=c(2,2))
+plot(leapsFit, scale="r2")
+plot(leapsFit, scale="adjr2")
+plot(leapsFit, scale="Cp")
+plot(leapsFit, scale="bic")
+```
+
+Figure 6.  Residuals and Diagnostics Plots for Final Multivariable Linear Model.
+```{r}
+par(mfrow=c(3,2)); plot(finalFit, which=1:6)
+```
